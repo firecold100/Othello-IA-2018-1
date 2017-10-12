@@ -1,9 +1,9 @@
 import java.util.List;
 
 public class MyTreeNode<T>{
-    private T data = null;
-    private List<MyTreeNode> children = new ArrayList();
-    private MyTreeNode parent = null;
+    public T data;
+    public List<MyTreeNode> children = new ArrayList<MyTreeNode>();
+    public MyTreeNode parent = null;
 
     public MyTreeNode(T data) {
         this.data = data;
@@ -15,7 +15,7 @@ public class MyTreeNode<T>{
     }
 
     public void addChild(T data) {
-        MyTreeNode<T> newChild = new MyTreeNode(data);
+        MyTreeNode<Configuracion> newChild = new MyTreeNode(data);
         newChild.setParent(this);
         children.add(newChild);
     }

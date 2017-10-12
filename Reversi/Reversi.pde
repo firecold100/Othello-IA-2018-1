@@ -301,44 +301,47 @@ public ArrayList<Configuracion> generaPosiblesMovimientos(int [][] mundo, int tu
   return configuraciones;
 }
 
-/*
-public MyTreeNode construyeArbol(int profundidad, int [][] mundo){
-  Configuracion actual = new Configuracion(mundo);
-  MyTreeNode raiz = new MyTreeNode(actual);
-  cola = new cola;
-  cola.push(raiz);
-  funciona pero no limita la profundidad
-  int contador = 0;
-  while(cola no vacia || contador <= profundidad){
-    nodo = cola.pop();
-    hijos = construyeArbolAux(nodo, turno);
-    cola.addAll(hijos);
-    contador++;
+//Funcion Minimax.
+public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
+  if(depth == 0){
+    return heuristica(raiz);
+  }
+  if (maximizaJugador){
+    int mejorValor = Integer.MIN_VALUE;
+    construyeArbolAux(raiz, JUGADOR2);
+    for(MyTreeNode n: (List<MyTreeNode>)raiz.getChildren()){
+      int v = minimax(n, depth-1, false);
+      mejorValor = Math.max(mejorValor, v);
+    }
+    return mejorValor;
+  }else{
+    int mejorValor = Integer.MAX_VALUE;
+    construyeArbolAux(raiz, JUGADOR1);
+    for(MyTreeNode n: (List<MyTreeNode>)raiz.getChildren()){
+      int v = minimax(n, depth-1, true);
+      mejorValor = Math.min(mejorValor, v);
+    }
+    return mejorValor;
   }
 }
 
+public int heuristica(MyTreeNode hoja){
+  return (int)Math.random();
+}
 
 public void construyeArbolAux(MyTreeNode raiz, int turno){
-  ArrayList<Configuracion> configuraciones = generaPosiblesMovimientos(raiz.getData().mundo, turno);
-  for(Configuracion c: configuraciones){
-    MyTreeNode hijo = new MyTreeNode(c);
+  Configuracion c = (Configuracion)raiz.getData();
+  int [][] mundoInterno = c.getMundo();
+  ArrayList<Configuracion> configuraciones = generaPosiblesMovimientos(mundoInterno, turno);
+  for(Configuracion conf: configuraciones){
+    MyTreeNode hijo = new MyTreeNode(conf);
     raiz.addChild(hijo);
   }
 }
-*/
 
 public Configuracion getMovimiento(){
   return null;
 }
-
-
-public int minimax(Configuracion cActual, int profundidad, boolean maximizar){
-  if (profundidad == 0){
-    
-  }
-return 0;
-}
-
 
 // Callback. Evento que ocurre después de presionar el botón del mouse
 void mouseClicked() {

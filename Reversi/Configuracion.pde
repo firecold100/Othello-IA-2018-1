@@ -21,7 +21,15 @@ public class Configuracion{
     this.mundo = mundo;
   }
   
+  public Configuracion(int valor){
+    this.valor = valor;
+  }
+  
   public Configuracion(int[][] mundo){
     this.mundo = mundo;
+  }
+  
+  public int[][] getMundo(){
+    return this.mundo;
   }
 }
