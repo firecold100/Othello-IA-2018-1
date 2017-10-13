@@ -1,8 +1,9 @@
+import java.util.Arrays;
 /**
  * Juego de Reversi/Othello usando Processing
  */
 int ancho = 8, 
-  alto = 6, 
+  alto = 8, 
   tamano = 64;
 boolean p1Turn = true;
 int playerCode;
@@ -10,6 +11,7 @@ Tablero tablero;
 static final int JUGADOR1=1;
 static final int JUGADOR2=2;
 static final int SIN_FICHA=0;
+static final int PROFUNDIDAD = 2;
 
 // Inicial para establecer tamaño de ventana con variables
 void settings() {
@@ -25,6 +27,17 @@ void setup() {
 // Update. Continuamente ejecuta y dibuja el código contenido en él
 void draw() {
   tablero.display();
+}
+
+//Metodo que hace una copia por valor de un arreglo
+
+public static int[][] cloneArray(int[][] src) {
+    int length = src.length;
+    int[][] target = new int[length][src[0].length];
+    for (int i = 0; i < length; i++) {
+        System.arraycopy(src[i], 0, target[i], 0, src[i].length);
+    }
+    return target;
 }
 
 //Método que devuelve un booleano que representa al turno del jugador contrincante. 
@@ -265,7 +278,7 @@ public ArrayList<Casilla> casillasACambiar(int x, int y, int[][] mundo, int turn
 //Método que verifica si un tiro es válido o no. Checa las posiciones aledañas a la casilla para
 //Checar si flanquea o no.
 boolean tiroValido(ArrayList<Casilla> casillasACambiar){
-  return casillasACambiar.size()!=0;
+  return casillasACambiar.size() > 0;
 }
 
 /**
@@ -283,19 +296,37 @@ int[][] flip(ArrayList<Casilla> casillas, int[][] mundo, int turno){
   return mundo;
 }
 
+/**
+ * Método que regresa un arreglo nuevo con las casillas que se pueden flanquear.
+ * @param casillas ArrayList de las casillas que se pueden cambiar.
+ */
+int[][] flipPorCopia(ArrayList<Casilla> casillas, int[][] mundo, int turno){
+  int[][] nuevoMundo = cloneArray(mundo);
+  if(casillas.size()!=0)
+    for(Casilla c: casillas)
+      if(turno == JUGADOR1){
+        nuevoMundo[c.y][c.x] = JUGADOR1;
+      }else{
+        nuevoMundo[c.y][c.x] = JUGADOR2;
+      }
+  return nuevoMundo;
+}
+
 public ArrayList<Configuracion> generaPosiblesMovimientos(int [][] mundo, int turno){
   ArrayList<Configuracion> configuraciones = new ArrayList<Configuracion>();
   //Recorremos el tablero para buscar posibles tuplas que representan un lugar valido para tirar.
-  for(int i = 0, j = 0; i<ancho && j<alto; i++,j++){
-    //Si tenemos oportunidad de tirar en la posicion i,j
-    if(!casillasACambiar(i,j, mundo,turno).isEmpty()){
-      //Creamos el posible tablero.
-      int[][] posibleMundo = flip(casillasACambiar(i,j,mundo,turno), mundo, turno);
-      posibleMundo[i][j] = turno;
-      //Creamos el objeto configuracion con la tirada que nos lleva a ella y el tablero en un futuro.
-      Configuracion posibleConfiguracion = new Configuracion(i,j,posibleMundo);
-      //Agregamos la configuracion a la lista de configuraciones posibles.
-      configuraciones.add(posibleConfiguracion);
+  for(int i = 0; i<ancho; i++){
+    for(int j = 0; j<alto; j++){
+      //Si tenemos oportunidad de tirar en la posicion i,j
+      if(mundo[j][i] == 0 && !casillasACambiar(i,j, mundo,turno).isEmpty()){
+        //Creamos el posible tablero.
+        int[][] posibleMundo = flipPorCopia(casillasACambiar(i,j,mundo,turno), mundo, turno);
+        posibleMundo[j][i] = turno;
+        //Creamos el objeto configuracion con la tirada que nos lleva a ella y el tablero en un futuro.
+        Configuracion posibleConfiguracion = new Configuracion(i,j,posibleMundo);
+        //Agregamos la configuracion a la lista de configuraciones posibles.
+        configuraciones.add(posibleConfiguracion);
+      }
     }
   }
   return configuraciones;
@@ -303,7 +334,7 @@ public ArrayList<Configuracion> generaPosiblesMovimientos(int [][] mundo, int tu
 
 //Funcion Minimax.
 public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
-  if(depth == 0){
+  if(depth == 0 || (raiz.getChildren().isEmpty() && raiz.getParent() != null)){
     return heuristica(raiz);
   }
   if (maximizaJugador){
@@ -311,6 +342,7 @@ public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
     construyeArbolAux(raiz, JUGADOR2);
     for(MyTreeNode n: (List<MyTreeNode>)raiz.getChildren()){
       int v = minimax(n, depth-1, false);
+      n.getData().valor = v;
       mejorValor = Math.max(mejorValor, v);
     }
     return mejorValor;
@@ -319,6 +351,7 @@ public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
     construyeArbolAux(raiz, JUGADOR1);
     for(MyTreeNode n: (List<MyTreeNode>)raiz.getChildren()){
       int v = minimax(n, depth-1, true);
+      n.getData().valor = v;
       mejorValor = Math.min(mejorValor, v);
     }
     return mejorValor;
@@ -326,12 +359,13 @@ public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
 }
 
 public int heuristica(MyTreeNode hoja){
-  return (int)Math.random();
+  Configuracion mundoPosible = (Configuracion) hoja.getData();
+  return mundoPosible.count(JUGADOR2);
 }
 
 public void construyeArbolAux(MyTreeNode raiz, int turno){
   Configuracion c = (Configuracion)raiz.getData();
-  int [][] mundoInterno = c.getMundo();
+  int [][] mundoInterno = c.mundo;
   ArrayList<Configuracion> configuraciones = generaPosiblesMovimientos(mundoInterno, turno);
   for(Configuracion conf: configuraciones){
     MyTreeNode hijo = new MyTreeNode(conf);
@@ -340,15 +374,86 @@ public void construyeArbolAux(MyTreeNode raiz, int turno){
 }
 
 public Configuracion getMovimiento(){
+  int valorMinimaxActual;
+  Configuracion actual = new Configuracion(tablero.mundo);
+  MyTreeNode<Configuracion> raiz = new MyTreeNode(actual);
+  valorMinimaxActual = minimax(raiz, PROFUNDIDAD, true);
+  for(MyTreeNode t: raiz.getChildren()){
+    if (valorMinimaxActual == ((Configuracion)t.getData()).valor){
+      return (Configuracion)t.getData();
+    }
+  }
   return null;
+}
+
+//Funcion que cuenta las fichas puestas en el tablero para determinar un ganador
+public void determinaGanador(){
+  int puntajeJugador1 = tablero.count(1);
+  int puntajeJugador2 = tablero.count(2);
+  println("Puntajes: ");
+  println("Jugador1: " + puntajeJugador1);
+  println("Inteligencia Artificial : " + puntajeJugador2);
+  if (puntajeJugador1 > puntajeJugador2) println("Jugador 1 ha ganado el juego"); 
+  if (puntajeJugador2 > puntajeJugador1) println("La Inteligencia Artificial ha ganado el juego");
+  if (puntajeJugador1 == puntajeJugador2) println("El juego termino en empate");
+}
+
+public boolean juegoAcabo(){
+  boolean bandera = false;
+  boolean tiro1 = false;
+  boolean tiro2 = false;
+  for(int i = 0; i<ancho; i++){
+    for(int j = 0; j<alto; j++){
+        if(tablero.mundo[j][i] == 1){
+          tiro1 = true;
+        }
+        if(tablero.mundo[j][i] == 2){
+          tiro2 = true;
+        }
+        if(tablero.mundo[j][i] == 0){
+          bandera = true;
+        }
+    }
+  }
+  if(tiro1 && !tiro2 || tiro2 && !tiro1 || !bandera) return true;
+  return false;
 }
 
 // Callback. Evento que ocurre después de presionar el botón del mouse
 void mouseClicked() {
-  if (tablero.mundo[mouseY/tamano][mouseX/tamano] == 0 && tiroValido(casillasACambiar(mouseX/tamano,mouseY/tamano, tablero.mundo, jugadorActual()))) { //Si la casilla está vacía entonces...
-    tablero.mundo[mouseY/tamano][mouseX/tamano] = jugadorActual(); //Pon la ficha del jugador actual
-    tablero.mundo = flip(casillasACambiar(mouseX/tamano,mouseY/tamano, tablero.mundo ,jugadorActual()), tablero.mundo, jugadorActual());
-    // Intercambia al jugador actual.
-    intercambiaJugador(); 
-  }
+    if (tablero.mundo[mouseY/tamano][mouseX/tamano] == 0 && tiroValido(casillasACambiar(mouseX/tamano,mouseY/tamano, tablero.mundo, jugadorActual()))) { //Si la casilla está vacía entonces...
+      tablero.mundo[mouseY/tamano][mouseX/tamano] = jugadorActual(); //Pon la ficha del jugador actual
+      tablero.mundo = flip(casillasACambiar(mouseX/tamano,mouseY/tamano, tablero.mundo ,jugadorActual()), tablero.mundo, jugadorActual());
+      // Intercambia el turno a la IA.
+      intercambiaJugador();
+      draw();
+      //Turno de la Inteligencia artificial
+      //println("Antes de tirar la IA el tablero estaba configurado asi: " + Arrays.deepToString(tablero.mundo));
+      Configuracion proximaConfiguracion = getMovimiento();
+      if (proximaConfiguracion != null){
+        int coordenadaX = proximaConfiguracion.x;
+        int coordenadaY = proximaConfiguracion.y;
+        if(tablero.mundo[coordenadaY][coordenadaX] == 0 && tiroValido(casillasACambiar(coordenadaX,coordenadaY, tablero.mundo, jugadorActual()))){
+          tablero.mundo[coordenadaY][coordenadaX] = jugadorActual(); //Pon la ficha del jugador actual
+          tablero.mundo = flip(casillasACambiar(coordenadaX,coordenadaY, tablero.mundo ,jugadorActual()), tablero.mundo, jugadorActual());
+          println("Tiré en "+ coordenadaY + " " + coordenadaX);
+          //println("Despues de tirar la IA el tablero quedo configurado asi: " + Arrays.deepToString(tablero.mundo));
+          //Regresa el turno al jugador1.
+          intercambiaJugador();
+        }else{
+          println("Juego Terminado");
+          determinaGanador();
+          exit();
+        }
+      }else{
+        println("Juego Terminado");
+        determinaGanador();
+        exit();
+      }
+    }else {
+      if(juegoAcabo()){
+        determinaGanador();
+        exit();
+      }
+    }
 }
