@@ -1,4 +1,5 @@
 import java.util.Arrays;
+import java.util.Random;
 /**
  * Juego de Reversi/Othello usando Processing
  */
@@ -360,7 +361,27 @@ public int minimax(MyTreeNode raiz, int depth, boolean maximizaJugador){
 
 public int heuristica(MyTreeNode hoja){
   Configuracion mundoPosible = (Configuracion) hoja.getData();
-  return mundoPosible.count(JUGADOR2);
+  int evaluacion = mundoPosible.count(JUGADOR2);
+  int bonus = 1;
+  
+  if (mundoPosible.mundo[0][0] == JUGADOR2) {
+        
+   }
+  if (mundoPosible.mundo[0][ancho - 1] == JUGADOR2) {
+        evaluacion += bonus;
+   }
+   if (mundoPosible.mundo[alto - 1][0]== JUGADOR2) {
+        evaluacion += bonus;
+   }
+   if (mundoPosible.mundo[alto - 1][ancho - 1]== JUGADOR2) {
+        evaluacion += bonus;
+   }
+   return evaluacion;
+}
+
+public int heuristicaRandom(MyTreeNode hoja){
+  Random random = new Random();
+  return random.nextInt(64);
 }
 
 public void construyeArbolAux(MyTreeNode raiz, int turno){
@@ -378,6 +399,7 @@ public Configuracion getMovimiento(){
   Configuracion actual = new Configuracion(tablero.mundo);
   MyTreeNode<Configuracion> raiz = new MyTreeNode(actual);
   valorMinimaxActual = minimax(raiz, PROFUNDIDAD, true);
+  println("El valor de minimax fue: " + valorMinimaxActual);
   for(MyTreeNode t: raiz.getChildren()){
     if (valorMinimaxActual == ((Configuracion)t.getData()).valor){
       return (Configuracion)t.getData();
@@ -436,7 +458,7 @@ void mouseClicked() {
         if(tablero.mundo[coordenadaY][coordenadaX] == 0 && tiroValido(casillasACambiar(coordenadaX,coordenadaY, tablero.mundo, jugadorActual()))){
           tablero.mundo[coordenadaY][coordenadaX] = jugadorActual(); //Pon la ficha del jugador actual
           tablero.mundo = flip(casillasACambiar(coordenadaX,coordenadaY, tablero.mundo ,jugadorActual()), tablero.mundo, jugadorActual());
-          println("Tiré en "+ coordenadaY + " " + coordenadaX);
+          println("IA tiró en la posicion "+ coordenadaY + " " + coordenadaX);
           //println("Despues de tirar la IA el tablero quedo configurado asi: " + Arrays.deepToString(tablero.mundo));
           //Regresa el turno al jugador1.
           intercambiaJugador();
